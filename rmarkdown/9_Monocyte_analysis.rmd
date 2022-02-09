@@ -1,0 +1,221 @@
+---
+title: "9. Monocyte cluster analysis"
+author: "Cankun Wang, Faith Brennan"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(fig.width = 10, fig.height = 8)
+library(Seurat)
+library(ggplot2)
+library(tidyverse)
+library(devtools)
+library(ggpubr)
+library(Hmisc)
+library(ggpubr)
+library(ggrepel)
+library(cowplot)
+library(patchwork)
+library(matrixStats)
+
+load("../data/Seurat output files/All cells/combined.RData.rda")
+combine.combined <- combined.RData
+Idents(combine.combined) <- combine.combined$seurat_clusters
+```
+
+```{r, eval=T}
+set.seed(1)
+this_ct <- 3
+this_mono_obj <- subset(combine.combined, idents = this_ct)
+DefaultAssay(this_mono_obj) <- "RNA"
+this_mono_obj <- NormalizeData(this_mono_obj)
+this_mono_obj <- FindVariableFeatures(this_mono_obj)
+this_mono_obj <- ScaleData(this_mono_obj)
+this_mono_obj <- RunPCA(this_mono_obj, verbose = FALSE)
+this_mono_obj <- FindNeighbors(this_mono_obj, dims = 1:15)
+this_mono_obj <- FindClusters(this_mono_obj, resolution = 0.1)
+this_mono_obj <- RunUMAP(this_mono_obj, reduction = "pca", dims = 1:15)
+Idents(this_mono_obj) <- this_mono_obj$seurat_clusters
+Save(this_mono_obj, "this_mono.RData")
+
+
+```
+
+
+# Check top DEGs in each cluster to assist with cluster description 
+
+```{r}
+clusterzero.de.markers <- FindMarkers(this_mono_obj, ident.1 = "0", ident.2 = NULL, only.pos = TRUE)
+clusterone.de.markers <- FindMarkers(this_mono_obj, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
+clustertwo.de.markers <- FindMarkers(this_mono_obj, ident.1 = "2", ident.2 = NULL, only.pos = TRUE)
+clusterthree.de.markers <- FindMarkers(this_mono_obj, ident.1 = "3", ident.2 = NULL, only.pos = TRUE)
+
+#Use “head(clusterID.de.markers, n=50)” to preview de.markers for each endothelial cluster. 
+#Export full de.marker list for each cluster
+
+write.csv(clusterzero.de.markers, "0.de.markers")
+write.csv(clusterone.de.markers, "1.de.markers")
+write.csv(clustertwo.de.markers, "2.de.markers")
+write.csv(clusterthree.de.markers, "3.de.markers")
+
+#.csv files are combined into the excel file “Monocyte clusters”
+
+subcluster.averages <- AverageExpression(this_mono_obj, assays = "RNA", "subcluster.averages")
+write.csv(subcluster.averages, "Monocyte subcluster gene avgs")
+
+#Data is in the far right tab of the excel file “Monocyte clusters” 
+
+```
+
+# Rename clusters
+
+```{r, eval=T}
+Idents(this_mono_obj) <- this_mono_obj$seurat_clusters
+this_mono_obj <- RenameIdents(this_mono_obj, `0` = "Fcer1ghi") 
+this_mono_obj <- RenameIdents(this_mono_obj, `1` = "Cd209ahi")
+this_mono_obj <- RenameIdents(this_mono_obj, `2` = "Prg4hi") 
+this_mono_obj <- RenameIdents(this_mono_obj, `3` = "Clec9ahi") 
+
+```
+
+# Plot all cells
+
+```{r, eval = T}
+
+DimPlot(this_mono_obj, label = TRUE)
+DimPlot(this_mono_obj, reduction = "umap", split.by = "orig.ident", ncol = 2)
+```
+
+# Create a DotPlot showing five of the de.markers for each cluster, showin in Sup. Fig. 15C
+
+```{r, eval = T, fig.height=4}
+markers.to.plot <- c("Itgae", "Ifi205", "Snx22", "Clec9a", "Xcr1", "Icam2", "Ltbp1", "Selp", "Alox15", "Prg4", "H2-Aa", "H2-Eb1", "H2-Oa", "Cd209a", "Klrd1", "Apoe", "Ctsb", "Lst1", "Ftl1", "Fcer1g")
+
+DotPlot(this_mono_obj, features = rev(markers.to.plot), assay = "RNA", cols = c("blue", "orange"), dot.scale = 6) + RotatedAxis()
+
+```
+
+# Show Monocyte cluster data
+
+```{r, eval = T}
+Monocyte_cluster_cell_number <- (table(Idents(this_mono_obj)))
+#write.csv(Monocyte_cluster_cell_number, "Monocyte cluster cell number")
+Monocyte_cluster_cell_number
+
+Monocyte_cell_number_by_group<- table(Idents(this_mono_obj), this_mono_obj$orig.ident)
+#write.csv(Monocyte_cell_number_by_group, "Monocyte_cluster no._by group")
+Monocyte_cell_number_by_group
+
+Monocyte_cell_percent <- (prop.table(table(Idents(this_mono_obj), this_mono_obj$orig.ident), margin = 2))
+#write.csv(Monocyte_cell_percent, "Monocyte cell percentages")
+Monocyte_cell_percent
+
+#Files are combined into the file excel  “Monocyte cell numbers” and data is shown in Sup. Fig. 15D
+
+```
+
+# Analysis for Volcano plot and heatmaps in Sup. Fig. 15E-J
+
+```{r}
+Mono_7dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "3"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "3"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+
+write.csv(Mono_7dvs0d, "Monocyte 7d vs 0d")
+
+Mono_28dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "3"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "3"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+
+write.csv(Mono_28dvs0d, "Monocyte 28d vs 0d")
+
+Mono_7dplxvs7dveh <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d PLX5622", ]),
+      idents = "3"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "3"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+
+write.csv(Mono_7dplxvs7dveh, "Monocyte 7dplx vs 7dveh")
+
+Mono_28dplxvs28dveh <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d PLX5622", ]),
+      idents = "3"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "3"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+
+write.csv(Mono_28dplxvs28dveh, "Monocyte 28dplx vs 28dveh")
+
+
+```

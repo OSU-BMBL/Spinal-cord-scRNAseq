@@ -1,0 +1,274 @@
+---
+title: "8. Neutrophil cluster analysis"
+author: "Cankun Wang, Faith Brennan"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(fig.width = 10, fig.height = 8)
+library(Seurat)
+library(ggplot2)
+library(tidyverse)
+library(devtools)
+library(ggpubr)
+library(Hmisc)
+library(ggpubr)
+library(ggrepel)
+library(cowplot)
+library(patchwork)
+library(matrixStats)
+
+load("../data/Seurat output files/Neutrophils/this_neut.RData.rda")
+this_neut_obj <- this_neut.RData 
+load("../data/Seurat output files/All cells/combined.RData.rda")
+combine.combined <- combined.RData
+Idents(combine.combined) <- combine.combined$seurat_clusters
+```
+
+```{r}
+#Neutrophil cluster analysis (cluster 9 from combine.combined object)
+this_ct <- 9
+this_neut_obj <- subset(combine.combined, idents = this_ct)
+DefaultAssay(this_neut_obj) <- "RNA"
+this_neut_obj <- NormalizeData(this_neut_obj)
+this_neut_obj <- FindVariableFeatures(this_neut_obj)
+this_neut_obj <- ScaleData(this_neut_obj)
+this_neut_obj <- RunPCA(this_neut_obj, verbose = FALSE)
+this_neut_obj <- FindNeighbors(this_neut_obj, dims = 1:20)
+this_neut_obj <- FindClusters(this_neut_obj, resolution = 0.2)
+this_neut_obj <- RunUMAP(this_neut_obj, reduction = "pca", dims = 1:20)
+Idents(this_neut_obj) <- this_neut_obj$seurat_clusters
+Save(combine.combined, "combined.RData")
+Save(this_neut_obj, "this_neut.RData")
+
+```
+
+
+# Check top DEGs in each cluster to assist with cluster description 
+
+```{r}
+clusterzero.de.markers <- FindMarkers(this_neut_obj, ident.1 = "0", ident.2 = NULL, only.pos = TRUE)
+clusterone.de.markers <- FindMarkers(this_neut_obj, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
+clustertwo.de.markers <- FindMarkers(this_neut_obj, ident.1 = "2", ident.2 = NULL, only.pos = TRUE)
+
+#Use “head(clusterID.de.markers, n=50)” to preview de.markers for each ependymal cluster. 
+#Export full de.marker list for each cluster
+
+write.csv(clusterzero.de.markers, "0.de.markers")
+write.csv(clusterone.de.markers, "1.de.markers")
+write.csv(clustertwo.de.markers, "2.de.markers")
+
+#.csv files are combined into the excel file “Neutrophil clusters”
+
+subcluster.averages <- AverageExpression(this_neut_obj, assays = "RNA", "subcluster.averages")
+write.csv(subcluster.averages, "Neutrophil subcluster gene avgs")
+
+#Data is in the far right tab of the excel file “Neutrophil clusters” 
+
+```
+
+# Rename clusters
+
+```{r, eval = T}
+Idents(this_neut_obj) <- this_neut_obj$seurat_clusters
+this_neut_obj <- RenameIdents(this_neut_obj, `0` = "Subset 1") 
+this_neut_obj <- RenameIdents(this_neut_obj, `1` = "Subset 2")
+this_neut_obj <- RenameIdents(this_neut_obj, `2` = "Subset 3")
+
+```
+
+# Plot all cells
+
+```{r, eval = T}
+
+DimPlot(this_neut_obj, label = TRUE)
+DimPlot(this_neut_obj, reduction = "umap", split.by = "orig.ident", ncol = 2)
+
+```
+
+# Create a DotPlot showing five of the de.markers for each cluster, showin in Sup. Fig. 14C 
+
+```{r, eval = T}
+markers.to.plot <- c("Npm1", "Rps4x", "Ms4a6c", "Ifi30", "Ctss", "Lcn2", "Chil3", "Ngp", "Camp", "Ltf", "S100a6", "Btg1", "Srgn", "S100a11", "Msrb1")
+
+DotPlot(this_neut_obj, features = rev(markers.to.plot), assay = "RNA", cols = c("blue", "orange"), dot.scale = 6) + RotatedAxis()
+
+```
+
+# Show Neutrophil cell cluster data
+
+```{r, eval = T}
+Neutrophil_cluster_cell_number <- (table(Idents(this_neut_obj)))
+#write.csv(Neutrophil_cluster_cell_number, "Neutrophil cluster cell number")
+Neutrophil_cluster_cell_number
+
+Neutrophil_cell_number_by_group<- table(Idents(this_neut_obj), this_neut_obj$orig.ident)
+#write.csv(Neutrophil_cell_number_by_group, "Neutrophil_cluster no._by group")
+Neutrophil_cell_number_by_group
+
+Neutrophil_cell_percent <- (prop.table(table(Idents(this_neut_obj), this_neut_obj$orig.ident), margin = 2))
+#write.csv(Neutrophil_cell_percent, "Neutrophil cell percentages")
+Neutrophil_cell_percent
+
+#Files are combined into the file excel  “Neutrophil cell numbers” and data is shown in Sup. Fig. 14G
+```
+
+# UMAP plots for Sup. Fig. 14D-F
+
+```{r, eval = T}
+FeaturePlot(this_neut_obj, features = c("Srgn", "Chil3", "Ctss"), min.cutoff = "q9")
+```
+
+# Violin plots for Sup. Fig. 14J-M
+
+```{r, eval = T, fig.height=8}
+VlnPlot(combine.combined, features = c("Cxcr4", "Ubb", "Pram1", "Ier3"), idents = "9", group.by = "orig.ident", pt.size = 1, assay = "RNA")
+```
+
+# Statistical analysis for Sup. Fig. 14J-M
+
+```{r}
+FindMarkers(this_epen_obj, ident.1 = "Group 1", ident.2 = "Group 2, group.by = "orig.ident", features = c("gene name"), logfc.threshold = 0.001, test.use = "wilcox")
+```
+
+# Analysis for Volcano plots Sup. Fig. 14H, I
+
+```{r}
+Neut_7dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "9"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "9"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Neut_7dvs0d, "Neutrophil 7d vs 0d")
+
+Neut_28dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "9"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "9"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Neut_28dvs0d, "Neutrophil 28d vs 0d")
+
+Neut_7dplxvs7dveh <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d PLX5622", ]),
+      idents = "9"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "9"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Neut_7dplxvs7dveh, "Neutrophil 7dplx vs 7dveh")
+
+Neut_28dplxvs28dveh <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d PLX5622", ]),
+      idents = "9"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "9"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Neut_28dplxvs28dveh, "Neutrophil 28dplx vs 28dveh")
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```

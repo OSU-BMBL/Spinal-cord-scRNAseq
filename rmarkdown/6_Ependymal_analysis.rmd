@@ -1,0 +1,190 @@
+---
+title: "6. Ependymal cluster analysis"
+author: "Cankun Wang, Faith Brennan"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(fig.width = 10, fig.height = 8)
+library(Seurat)
+library(ggplot2)
+library(tidyverse)
+library(devtools)
+library(ggpubr)
+library(Hmisc)
+library(ggpubr)
+library(ggrepel)
+library(cowplot)
+library(patchwork)
+library(matrixStats)
+
+load("../data/Seurat output files/Ependymal cells/this_epen.RData.rda")
+this_epen_obj <- this_epen.RData 
+load("../data/Seurat output files/All cells/combined.RData.rda")
+combine.combined <- combined.RData
+Idents(combine.combined) <- combine.combined$seurat_clusters
+```
+
+```{r}
+this_ct <- 6
+this_epen_obj <- subset(combine.combined, idents = this_ct)
+DefaultAssay(this_epen_obj) <- "RNA"
+this_epen_obj <- NormalizeData(this_epen_obj)
+this_epen_obj <- FindVariableFeatures(this_epen_obj)
+this_epen_obj <- ScaleData(this_epen_obj)
+this_epen_obj <- RunPCA(this_epen_obj, verbose = FALSE)
+this_epen_obj <- FindNeighbors(this_epen_obj, dims = 1:20)
+this_epen_obj <- FindClusters(this_epen_obj, resolution = 0.15)
+this_epen_obj <- RunUMAP(this_epen_obj, reduction = "pca", dims = 1:20)
+Idents(this_epen_obj) <- this_epen_obj$seurat_clusters
+Save(combine.combined, "combined.RData")
+Save(this_epen_obj, "this_epen.RData")
+DimPlot(this_epen_obj, label = TRUE)
+DimPlot(this_epen_obj, reduction = "umap", split.by = "orig.ident", ncol = 2)
+
+```
+
+# Check top DEGs in each cluster to assist with cluster description
+
+```{r}
+clusterzero.de.markers <- FindMarkers(this_epen_obj, ident.1 = "0", ident.2 = NULL, only.pos = TRUE)
+clusterone.de.markers <- FindMarkers(this_epen_obj, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
+clustertwo.de.markers <- FindMarkers(this_epen_obj, ident.1 = "2", ident.2 = NULL, only.pos = TRUE)
+
+#Use “head(clusterID.de.markers, n=50)” to preview de.markers for each ependymal cluster. 
+#Export full de.marker list for each cluster
+
+write.csv(clusterzero.de.markers, "0.de.markers")
+write.csv(clusterone.de.markers, "1.de.markers")
+write.csv(clustertwo.de.markers, "2.de.markers")
+
+#.csv files are combined into the excel file “Ependymal clusters”
+
+subcluster.averages <- AverageExpression(this_epen_obj, assays = "RNA", "subcluster.averages")
+write.csv(subcluster.averages, "Ependymal subcluster gene avgs")
+
+#Data is in the far right tab of the excel file “Ependymal clusters” 
+
+```
+
+# Rename clusters
+
+```{r, eval=T}
+
+Idents(this_epen_obj) <- this_epen_obj$seurat_clusters
+this_epen_obj <- RenameIdents(this_epen_obj, `0` = "New ependymal cells") 
+this_epen_obj <- RenameIdents(this_epen_obj, `1` = "Mature ependymal cells")
+this_epen_obj <- RenameIdents(this_epen_obj, `2` = "Supraependymal macrophages")
+
+```
+
+# Plot all cells
+
+```{r, eval = T}
+
+DimPlot(this_epen_obj, label = TRUE)
+DimPlot(this_epen_obj, reduction = "umap", split.by = "orig.ident", ncol = 2)
+
+```
+
+
+# Create a DotPlot showing ten of the de.markers for each cluster, showin in Sup. Fig. 12C
+
+```{r, eval = T, fig.width=12, fig.height=3}
+markers.to.plot <- c("Unc93b1", "Mafb", "Trem2", "Mpeg1", "Ly86", "Cd53", "Laptm5", "Fcrls", "Cx3cr1", "Csf1r", "Cul3", "Sash1", "Sgms2", "Pls3", "Samd4", "Mboat2", "Synpo2", "Gatad1", "Ccdc65", "Rbm24", "Lrrc36", "Ndufs7", "Gfap", "Celsr2", "Lypla2", "Ddah2", "Celsr1", "Dyx1c1", "Ctso", "Malat1")
+
+DotPlot(this_epen_obj, features = rev(markers.to.plot), assay = "RNA", cols = c("blue", "orange"), dot.scale = 6) + RotatedAxis()
+
+
+```
+
+# Show Ependymal cell cluster data
+
+```{r, eval = T}
+Ependymal_cluster_cell_number <- (table(Idents(this_epen_obj)))
+#write.csv(Ependymal_cluster_cell_number, "Ependymal cluster cell number")
+Ependymal_cluster_cell_number
+
+Ependymal_cell_number_by_group<- table(Idents(this_epen_obj), this_epen_obj$orig.ident)
+#write.csv(Ependymal_cell_number_by_group, "Ependymal_cluster no._by group")
+Ependymal_cell_number_by_group
+
+Ependymal_cell_percent <- (prop.table(table(Idents(this_epen_obj), this_epen_obj$orig.ident), margin = 2))
+#write.csv(Ependymal_cell_percent, "Ependymal cell percentages")
+Ependymal_cell_percent
+
+#Files are combined into the file excel  “Ependymal cell numbers” and data is shown in Sup. Fig. 12D
+```
+
+# Violin plots for Sup. Fig. 12G, H, J, K
+
+```{r, eval = T}
+VlnPlot(combine.combined, features = c("Apoe", "Tmsb4x", "Ubb", "Pnrc2"), idents = "6",group.by = "orig.ident", pt.size = 1, assay = "RNA")
+```
+
+# Statistical analysis for Sup. Fig. 12G, H, J, K
+
+```{r}
+FindMarkers(this_epen_obj, ident.1 = "Group 1", ident.2 = "Group 2, group.by = "orig.ident", features = c("gene name"), logfc.threshold = 0.001, test.use = "wilcox")
+```
+
+# Analysis for Volcano plot and heatmaps in Sup. Fig. 12E, F, I
+
+```{r}
+Epen_7dvs0d <- FindMarkers(object = combine.combined, ident.1 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="07 d Control",]), idents = "6"),ident.2 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="00 d Control",]), idents = "6"), min.pct = 0.1, logfc.threshold = 0.176, assay = "RNA", only.pos = FALSE)
+write.csv(Epen_7dvs0d, "Ependymal 7d vs 0d")
+
+Epen_28dvs0d <- FindMarkers(object = combine.combined, ident.1 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="28 d Control",]), idents = "6"),ident.2 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="00 d Control",]), idents = "6"), min.pct = 0.1, logfc.threshold = 0.176, assay = "RNA", only.pos = FALSE)
+write.csv(Epen_28dvs0d, "Ependymal 28d vs 0d")
+
+Epen_7dplxvs7dveh <- FindMarkers(object = combine.combined, ident.1 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="07 d PLX5622",]), idents = "6"),ident.2 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="07 d Control",]), idents = "6"), min.pct = 0.1, logfc.threshold = 0.176, assay = "RNA", only.pos = FALSE)
+write.csv(Epen_7dplxvs7dveh, "Ependymal 7dplx vs 7dveh")
+
+Epen_28dplxvs28dveh <- FindMarkers(object = combine.combined, ident.1 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="28 d PLX5622",]), idents = "6"),ident.2 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="28 d Control",]), idents = "6"), min.pct = 0.1, logfc.threshold = 0.176, assay = "RNA", only.pos = FALSE)
+write.csv(Epen_28dplxvs28dveh, "Ependymal 28dplx vs 28dveh")
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```

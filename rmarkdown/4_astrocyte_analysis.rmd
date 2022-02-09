@@ -1,0 +1,162 @@
+---
+title: "4. Astrocyte cluster analysis"
+author: "Cankun Wang, Faith Brennan"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(fig.width = 10, fig.height = 8)
+library(Seurat)
+library(ggplot2)
+library(tidyverse)
+library(devtools)
+library(ggpubr)
+library(Hmisc)
+library(ggpubr)
+library(ggrepel)
+library(cowplot)
+library(patchwork)
+library(matrixStats)
+
+load("../data/Seurat output files/Astrocytes/this_astro_obj.RData.rda")
+this_obj <- this_astro_obj.RData 
+load("../data/Seurat output files/All cells/combined.RData.rda")
+combine.combined <- combined.RData
+Idents(combine.combined) <- combine.combined$seurat_clusters
+```
+
+
+```{r}
+this_ct <- 4
+this_obj <- subset(combine.combined, idents = this_ct)
+DefaultAssay(this_obj) <- "RNA"
+this_obj <- NormalizeData(this_obj)
+this_obj <- FindVariableFeatures(this_obj)
+this_obj <- ScaleData(this_obj)
+this_obj <- RunPCA(this_obj, verbose = FALSE)
+this_obj <- FindNeighbors(this_obj, dims = 1:5)
+this_obj <- FindClusters(this_obj, resolution = 0.1)
+this_obj <- RunUMAP(this_obj, reduction = "pca", dims = 1:5)
+Save(combine.combined, "combined.RData")
+Save(this_obj, "this_astro_obj.RData")
+Idents(this_obj) <- this_obj$seurat_clusters
+Save(combine.combined, "combined.RData")
+Save(this_obj, "this_astro_obj.RData")
+
+```
+
+
+# Check top DEGs in each cluster to assist with cluster description
+
+```{r}
+clusterzero.de.markers <- FindMarkers(this_obj, ident.1 = "0", ident.2 = NULL, only.pos = TRUE)
+clusterone.de.markers <- FindMarkers(this_obj, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
+clustertwo.de.markers <- FindMarkers(this_obj, ident.1 = "2", ident.2 = NULL, only.pos = TRUE)
+
+#Use “head(clusterID.de.markers, n=50)” to preview de.markers for each astrocyte cluster. 
+#Export full de.marker list for each cluster
+write.csv(clusterzero.de.markers, "0.de.markers")
+write.csv(clusterone.de.markers, "1.de.markers")
+write.csv(clustertwo.de.markers, "2.de.markers")
+#.csv files are combined into the excel file “Astrocyte clusters”
+
+subcluster.averages <- AverageExpression(this_obj, assays = "RNA", "subcluster.averages")
+write.csv(subcluster.averages, "Astrocyte subcluster gene avgs")
+
+#Data is in the far right tab of the excel file “Astrocyte clusters” 
+```
+
+# Rename clusters
+
+```{r, eval = T}
+Idents(this_obj) <- this_obj$seurat_clusters
+this_obj <- RenameIdents(this_obj, `0` = "Transporter") 
+this_obj <- RenameIdents(this_obj, `1` = "Metabolism")
+this_obj <- RenameIdents(this_obj, `2` = "Inflammation") 
+
+```
+
+# Plot all cells
+
+```{r, eval = T}
+
+DimPlot(this_obj, label = TRUE)
+DimPlot(this_obj, reduction = "umap", split.by = "orig.ident", ncol = 2)
+
+```
+
+
+
+# Create a DotPlot showing five of the de.markers for each cluster
+
+```{r, eval = T}
+
+markers.to.plot <- c("C1qb", "C1qc", "Laptm5", "Ctss", "Fcer1g", "Adk", "Hsd11b1", "Tubb2a", "Gng11", "Fam181b", "Ntsr2", "Slc4a4", "Atp1a2", "Ndrg2", "Slc1a2")
+DotPlot(this_obj, features = rev(markers.to.plot), assay = "RNA", cols = c("blue", "orange"), dot.scale = 6) + RotatedAxis()
+
+
+```
+
+# Show Astrocyte cluster data
+
+```{r, eval = T}
+Astrocyte_cluster_cell_number <- (table(Idents(this_obj)))
+#write.csv(Astrocyte_cluster_cell_number, "Astrocyte cluster cell number")
+Astrocyte_cluster_cell_number
+
+Astrocyte_cell_number_by_group<- table(Idents(this_obj), this_obj$orig.ident)
+#write.csv(Astrocyte_cell_number_by_group, "Astrocyte_cluster no._by group")
+Astrocyte_cell_number_by_group
+
+Astrocyte_cell_percent <- (prop.table(table(Idents(this_obj), this_obj$orig.ident), margin = 2))
+#write.csv(Astrocyte_cell_percent, "Astrocyte cell percentages")
+Astrocyte_cell_percent
+
+#Files are combined into the file excel  “Astrocyte cell numbers” and data is shown in Fig. 7D, E
+```
+
+# Violin plots for Fig. 7J-L
+
+```{r, eval = T}
+VlnPlot(combine.combined, features = c("Tmsb4x", "Fth1", "Apoe"), idents = "4", group.by = "orig.ident", pt.size = 1, assay = "RNA")
+```
+
+# Statistical analysis for Fig. 7J-L
+
+```{r}
+FindMarkers(
+  this_obj,
+  ident.1 = "Group 1",
+  ident.2 = "Group 2",
+  group.by = "orig.ident",
+  features = c("gene name"),
+  logfc.threshold = 0.001,
+  test.use = "wilcox"
+)
+```
+
+# Analysis for Volcano plot for Fig. 7F and heatmap in Fig. 7I
+
+```{r}
+Astrocyte_28dvs0d <- FindMarkers(object = combine.combined, ident.1 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="28 d Control",]), idents = "4"),ident.2 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="00 d Control",]), idents = "4"), min.pct = 0.1, logfc.threshold = 0.176, assay = "RNA", only.pos = FALSE)
+write.csv(Astrocyte_28dvs0d, "Astrocyte 28d vs 0d")
+
+Astrocyte_28dplxvs28dveh <- FindMarkers(object = combine.combined, ident.1 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="28 d PLX5622",]), idents = "4"),ident.2 = WhichCells(combine.combined, cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident=="28 d Control",]), idents = "4"), min.pct = 0.1, logfc.threshold = 0.176, assay = "RNA", only.pos = FALSE)
+write.csv(Astrocyte_28dplxvs28dveh, "Astrocyte 28dplx vs 28dveh")
+
+```
+
+
+
+```{r, eval = T}
+
+```
+

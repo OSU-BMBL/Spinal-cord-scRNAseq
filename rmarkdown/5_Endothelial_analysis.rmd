@@ -1,0 +1,270 @@
+---
+title: "5. Endothelial cluster analysis"
+author: "Cankun Wang, Faith Brennan"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(fig.width = 10, fig.height = 8)
+library(Seurat)
+library(ggplot2)
+library(tidyverse)
+library(devtools)
+library(ggpubr)
+library(Hmisc)
+library(ggpubr)
+library(ggrepel)
+library(cowplot)
+library(patchwork)
+library(matrixStats)
+
+load("../data/Seurat output files/Endothelial cells/this_endo.RData.rda")
+this_endo_obj <- this_endo.RData 
+load("../data/Seurat output files/All cells/combined.RData.rda")
+combine.combined <- combined.RData
+Idents(combine.combined) <- combine.combined$seurat_clusters
+```
+
+
+```{r}
+this_ct <- 2
+this_endo_obj <- subset(combine.combined, idents = this_ct)
+DefaultAssay(this_endo_obj) <- "RNA"
+this_endo_obj <- NormalizeData(this_endo_obj)
+this_endo_obj <- FindVariableFeatures(this_endo_obj)
+this_endo_obj <- ScaleData(this_endo_obj)
+this_endo_obj <- RunPCA(this_endo_obj, verbose = FALSE)
+this_endo_obj <- FindNeighbors(this_endo_obj, dims = 1:20)
+this_endo_obj <- FindClusters(this_endo_obj, resolution = 0.2)
+this_endo_obj <- RunUMAP(this_endo_obj, reduction = "pca", dims = 1:20)
+Idents(this_endo_obj) <- this_endo_obj$seurat_clusters
+Save(combine.combined, "combined.RData")
+Save(this_endo_obj, "this_endo.RData")
+
+```
+
+
+# Check top DEGs in each cluster to assist with endothelial cluster description
+
+```{r}
+clusterzero.de.markers <- FindMarkers(this_endo_obj, ident.1 = "0", ident.2 = NULL, only.pos = TRUE)
+clusterone.de.markers <- FindMarkers(this_endo_obj, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
+clustertwo.de.markers <- FindMarkers(this_endo_obj, ident.1 = "2", ident.2 = NULL, only.pos = TRUE)
+clusterthree.de.markers <- FindMarkers(this_endo_obj, ident.1 = "3", ident.2 = NULL, only.pos = TRUE)
+
+#Use “head(clusterID.de.markers, n=50)” to preview de.markers for each endothelial cluster. 
+#Export full de.marker list for each cluster
+
+write.csv(clusterzero.de.markers, "0.de.markers")
+write.csv(clusterone.de.markers, "1.de.markers")
+write.csv(clustertwo.de.markers, "2.de.markers")
+write.csv(clusterthree.de.markers, "3.de.markers")
+
+#.csv files are combined into the excel file “Endothelial clusters”
+
+subcluster.averages <- AverageExpression(this_endo_obj, assays = "RNA", "subcluster.averages")
+write.csv(subcluster.averages, "Endothelial subcluster gene avgs")
+
+```
+
+
+# Rename clusters
+
+```{r}
+Idents(this_endo_obj) <- this_endo_obj$seurat_clusters
+this_endo_obj <- RenameIdents(this_endo_obj, `0` = "Homeostatic") 
+this_endo_obj <- RenameIdents(this_endo_obj, `1` = "Differentiating")
+this_endo_obj <- RenameIdents(this_endo_obj, `3` = "Neovascularizing") 
+this_endo_obj <- RenameIdents(this_endo_obj, `2` = "Perivascular macrophages") 
+
+```
+
+# Plot all cells
+
+```{r, eval = T}
+
+DimPlot(this_endo_obj, label = TRUE)
+DimPlot(this_endo_obj, reduction = "umap", split.by = "orig.ident", ncol = 2)
+
+```
+
+# Create a DotPlot showing five of the de.markers for each cluster, showin in Sup. Fig. 11C
+
+
+```{r, eval = T, fig.width=8, fig.height=4}
+markers.to.plot <- c("Cd53", "Fcer1g", "Mpeg1", "Ly86", "Csf1r", "Rgs4", "Atp13a5", "Kcnj8", "Vtn", "Pdgfrb", "Cox14", "Fkbp4", "Ly6a", "Pltp", "Ly6c1", "Abcb1a", "App", "Afap1l1", "Mmrn2", "Cldn5")
+
+DotPlot(this_endo_obj, features = rev(markers.to.plot), assay = "RNA", cols = c("blue", "orange"), dot.scale = 6) + RotatedAxis()
+
+```
+
+# Show Endothelial cell cluster data
+
+```{r, eval = T}
+Endothelial_cluster_cell_number <- (table(Idents(this_endo_obj)))
+#write.csv(Endothelial_cluster_cell_number, "Endothelial cluster cell number")
+Endothelial_cluster_cell_number
+
+Endothelial_cell_number_by_group<- table(Idents(this_endo_obj), this_endo_obj$orig.ident)
+#write.csv(Endothelial_cell_number_by_group, "Endothelial_cluster no._by group")
+Endothelial_cell_number_by_group
+
+Endothelial_cell_percent <- (prop.table(table(Idents(this_endo_obj), this_endo_obj$orig.ident), margin = 2))
+#write.csv(Endothelial_cell_percent, "Endothelial cell percentages")
+Endothelial_cell_percent
+
+#Files are combined into the file excel  “Endothelial cell numbers” and data is shown in Sup. Fig. 11
+
+```
+
+# Violin plots for Sup. Fig. 11H, I, K, L
+
+```{r, eval = T}
+VlnPlot(combine.combined, features = c("Fth1", "Apoe", "Ubb", "Sox18"), idents = "2", group.by = "orig.ident", pt.size = 1, assay = "RNA")
+```
+
+# Statistical analysis for Sup. Fig. 11H, I, K, L
+
+```{r}
+
+FindMarkers(this_endo_obj, ident.1 = "Group 1", ident.2 = "Group 2", group.by = "orig.ident", features = c("gene name"), logfc.threshold = 0.001, test.use = "wilcox")
+
+```
+
+# Analysis for Volcano plot and heatmaps in Sup. Fig. 11
+
+```{r}
+
+Endo_7dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "2"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "2"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Endo_7dvs0d, "Endothelial 7d vs 0d")
+
+Endo_28dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "2"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "2"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Endo_28dvs0d, "Endothelial 28d vs 0d")
+
+Endo_7dplxvs7dveh <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d PLX5622", ]),
+      idents = "2"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "2"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Endo_7dplxvs7dveh, "Endothelial 7dplx vs 7dveh")
+
+Endo_28dplxvs28dveh <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d PLX5622", ]),
+      idents = "2"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "2"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Endo_28dplxvs28dveh, "Endothelial 28dplx vs 28dveh")
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```

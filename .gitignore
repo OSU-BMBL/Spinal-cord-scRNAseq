@@ -1,0 +1,24 @@
+data/
+archive/
+docs/
+pdf/
+*.qsave
+*.rds
+*.log
+*.pptx
+*.h5ad
+*.h5Seurat
+*.log
+*.Rhistory
+*.zip
+*.pdf
+result*/
+.Rhistory
+.Rproj.user
+*.loom
+*.h5
+*.rdata
+*.here
+Seurat output files/
+*.rda
+

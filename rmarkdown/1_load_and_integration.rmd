@@ -1,0 +1,324 @@
+---
+title: "1. Data Load and library integration"
+author: "Cankun Wang, Faith Brennan"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(fig.width = 10, fig.height = 8)
+library(Seurat)
+library(ggplot2)
+library(tidyverse)
+library(devtools)
+library(ggpubr)
+library(Hmisc)
+library(ggpubr)
+library(ggrepel)
+library(cowplot)
+library(patchwork)
+library(matrixStats)
+
+```
+
+# Load data and create objects for each dataset
+
+Using R 3.6.3 and Seurat v3.2.0
+
+R versions >4 will also provide the same data but some UMAP plots will appear rotated
+
+```{r}
+#Sample load  (n=6 libraries, three time points are sham, 7d and 28d)
+A1.data <- Read10X(data.dir = "../Samples/1")
+A1 <-
+  CreateSeuratObject(
+    A1.data,
+    project = "00 d Control",
+    assay = "RNA",
+    min.cells = 3,
+    min.features = 200
+  )
+A2.data <- Read10X(data.dir = "../Samples/2")
+A2 <-
+  CreateSeuratObject(
+    A2.data,
+    project = "00 d PLX5622",
+    assay = "RNA",
+    min.cells = 3,
+    min.features = 200
+  )
+A3.data <- Read10X(data.dir = "../Samples/3")
+A3 <-
+  CreateSeuratObject(
+    A3.data,
+    project = "07 d Control",
+    assay = "RNA",
+    min.cells = 3,
+    min.features = 200
+  )
+A4.data <- Read10X(data.dir = "../Samples/4")
+A4 <-
+  CreateSeuratObject(
+    A4.data,
+    project = "07 d PLX5622",
+    assay = "RNA",
+    min.cells = 3,
+    min.features = 200
+  )
+A7.data <- Read10X(data.dir = "../Samples/7")
+A7 <-
+  CreateSeuratObject(
+    A7.data,
+    project = "28 d Control",
+    assay = "RNA",
+    min.cells = 3,
+    min.features = 200
+  )
+A8.data <- Read10X(data.dir = "../Samples/8")
+A8 <-
+  CreateSeuratObject(
+    A8.data,
+    project = "28 d PLX5622",
+    assay = "RNA",
+    min.cells = 3,
+    min.features = 200
+  )
+
+
+
+cord.grouped <-
+  merge(
+    A1,
+    y = c(A2, A3, A4, A7, A8),
+    add.cell.ids = c(
+      "00 d Control",
+      "00 d PLX5622",
+      "07 d Control",
+      "07 d PLX5622",
+      "28 d Control",
+      "28 d PLX5622"
+    ),
+    project = "all"
+  )
+
+
+```
+
+# Data check
+
+```{r}
+
+head(colnames(cord.grouped))
+tail(colnames(cord.grouped))
+unique(sapply(X = strsplit(colnames(cord.grouped), split = "_"), FUN = "[", 1))
+table(cord.grouped$orig.ident)
+
+```
+
+# Data integration
+
+UMAP plots shown in Fig. 4B, D, E, F
+
+```{r}
+
+combinedgroup.list <- SplitObject(cord.grouped, split.by = "orig.ident")
+combinedgroup.list <- lapply(X = combinedgroup.list, FUN = function(x) {
+  x <- NormalizeData(x)
+  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+combine.anchors <- FindIntegrationAnchors(object.list = combinedgroup.list, dims = 1:15)
+combine.combined <- IntegrateData(anchorset = combine.anchors, dims = 1:15)
+DefaultAssay(combine.combined) <- "integrated"
+combine.combined <- ScaleData(combine.combined, verbose = FALSE)
+combine.combined <- RunPCA(combine.combined, npcs = 30, verbose = FALSE)
+combine.combined <- RunUMAP(combine.combined, reduction = "pca", dims = 1:15)
+combine.combined <- FindNeighbors(combine.combined, reduction = "pca", dims = 1:15)
+combine.combined <- FindClusters(combine.combined, resolution = 0.15)
+DefaultAssay(combine.combined) <- "RNA"
+
+
+```
+
+# Find all markers and top DEGs in each cluster to assist with cluster identification
+
+```{r}
+seurat_markers <- FindAllMarkers(combine.combined)
+write.csv(seurat_markers,"seurat_markers.csv")
+
+#Data is in the .csv file “Seurat_markers”
+clusterzero.de.markers <- FindMarkers(combine.combined, ident.1 = "0", ident.2 = NULL, only.pos = TRUE)
+clusterone.de.markers <- FindMarkers(combine.combined, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
+clustertwo.de.markers <- FindMarkers(combine.combined, ident.1 = "2", ident.2 = NULL, only.pos = TRUE)
+clusterthree.de.markers <- FindMarkers(combine.combined, ident.1 = "3", ident.2 = NULL, only.pos = TRUE)
+clusterfour.de.markers <- FindMarkers(combine.combined, ident.1 = "4", ident.2 = NULL, only.pos = TRUE)
+clusterfive.de.markers <- FindMarkers(combine.combined, ident.1 = "5", ident.2 = NULL, only.pos = TRUE)
+clustersix.de.markers <- FindMarkers(combine.combined, ident.1 = "6", ident.2 = NULL, only.pos = TRUE)
+clusterseven.de.markers <- FindMarkers(combine.combined, ident.1 = "7", ident.2 = NULL, only.pos = TRUE)
+clustereight.de.markers <- FindMarkers(combine.combined, ident.1 = "8", ident.2 = NULL, only.pos = TRUE)
+clusternine.de.markers <- FindMarkers(combine.combined, ident.1 = "9", ident.2 = NULL, only.pos = TRUE)
+clusterten.de.markers <- FindMarkers(combine.combined, ident.1 = "10", ident.2 = NULL, only.pos = TRUE)
+clustereleven.de.markers <- FindMarkers(combine.combined, ident.1 = "11", ident.2 = NULL, only.pos = TRUE)
+clustertwelve.de.markers <- FindMarkers(combine.combined, ident.1 = "12", ident.2 = NULL, only.pos = TRUE)
+clusterthirteen.de.markers <- FindMarkers(combine.combined, ident.1 = "13", ident.2 = NULL, only.pos = TRUE)
+
+#Use “head(clusterID.de.markers, n=50)” to preview de.markers for each cluster. 
+#Export full de.marker list for each cluster
+write.csv(clusterzero.de.markers, "microglia.de.markers")
+write.csv(clusterone.de.markers, "MDM.de.markers")
+write.csv(clustertwo.de.markers, "Endothelial.de.markers")
+write.csv(clusterthree.de.markers, "Monocyte.de.markers")
+write.csv(clusterfour.de.markers, "Astrocyte.de.markers")
+write.csv(clusterfive.de.markers, "T cell.de.markers")
+write.csv(clustersix.de.markers, "Ependymal.de.markers")
+write.csv(clusterseven.de.markers, "B cell.de.markers")
+write.csv(clustereight.de.markers, "Int prog.de.markers")
+write.csv(clusternine.de.markers, "Neutrophil.de.markers")
+write.csv(clusterten.de.markers, "Erythroid.de.markers")
+write.csv(clustereleven.de.markers, "Oligo lineage.de.markers")
+write.csv(clustertwelve.de.markers, "Pericyte.de.markers")
+write.csv(clusterthirteen.de.markers, "Leptomeningeal.de.markers")
+
+#FindMarker Files are combined into the excel file “Cluster.de.markers”. Genes for each cluster type are sorted by LogFC expression. The top 3 de genes for each cluster are highlighted in yellow and presented in the DotPlot in Fig. 4C.
+
+```
+
+# Rename clusters
+
+Rename clusters if renaming is needed. For cluster isolation reserve the original labels.
+
+```{r}
+combine.combined <- RenameIdents(combine.combined, `0` = "Microglia")
+combine.combined <- RenameIdents(combine.combined, `1` = "MDMs")
+combine.combined <- RenameIdents(combine.combined, `2` = "Endothelial cells")
+combine.combined <- RenameIdents(combine.combined, `3` = "Monocytes")
+combine.combined <- RenameIdents(combine.combined, `4` = "Astrocytes") 
+combine.combined <- RenameIdents(combine.combined, `5` = "T cells")
+combine.combined <- RenameIdents(combine.combined, `6` = "Ependymal cells")
+combine.combined <- RenameIdents(combine.combined, `7` = "B cells")
+combine.combined <- RenameIdents(combine.combined, `8` = "Intermediate progenitors")
+combine.combined <- RenameIdents(combine.combined, `9` = "Neutrophils")
+combine.combined <- RenameIdents(combine.combined, `10` = "Erythroid cells")
+combine.combined <- RenameIdents(combine.combined, `11` = "Oligodendrocyte lineage")
+combine.combined <- RenameIdents(combine.combined, `12` = "Pericytes")
+combine.combined <- RenameIdents(combine.combined, `13` = "Leptomeningeal cells")
+
+Save(combine.combined, "combined.RData")
+
+```
+
+# Plot all cells
+
+```{r, eval = T}
+load("../data/Seurat output files/All cells/combined.RData.rda")
+combine.combined <- combined.RData
+DimPlot(combine.combined, reduction = "umap", group.by = "orig.ident", pt.size = 0.9)
+DimPlot(combine.combined, reduction = "umap", group.by = "seurat_clusters", label = TRUE, pt.size = 0.9)
+DimPlot(combine.combined, reduction = "umap", label = TRUE, pt.size = 0.9)
+
+
+```
+
+# Create a FeaturePlot showing de.markers (Sup. Fig. 7)
+
+```{r, eval = T}
+FeaturePlot(
+  combine.combined,
+  features = c(
+    "P2ry12",
+    "Gpnmb",
+    "Ly6c1",
+    "H2-Aa",
+    "Atp1a2",
+    "Ccl5",
+    "Nnat",
+    "Ly6d",
+    "Stmn1",
+    "S100a9",
+    "Hba-a2",
+    "Olig1",
+    "Dcn",
+    "Mgp"
+  ),
+  min.cutoff = "q9"
+)
+```
+
+# Create a DotPlot showing de.markers
+
+```{r, eval = T, fig.width=14, fig.height=6}
+markers.to.plot <-
+  c(
+    "Gsn",
+    "Igfbp6",
+    "Mgp",
+    "Vtn",
+    "Dcn",
+    "Apod",
+    "Vcan",
+    "Cspg5",
+    "Olig1",
+    "Alas2",
+    "Hbb-bs",
+    "Hba-a2",
+    "Retnlg",
+    "S100a8",
+    "S100a9",
+    "Top2a",
+    "Hmgb2",
+    "Stmn1",
+    "Cd79b",
+    "Cd79a",
+    "Ly6d",
+    "Mt3",
+    "Nnat",
+    "Dbi",
+    "Nkg7",
+    "Ms4a4b",
+    "Ccl5",
+    "Atp1b2",
+    "Atp1a2",
+    "Slc1a2",
+    "H2-Ab1",
+    "H2-Eb1",
+    "H2-Aa",
+    "Itm2a",
+    "Cldn5",
+    "Ly6c1",
+    "Fabp5",
+    "Spp1",
+    "Gpnmb",
+    "Tmem119",
+    "Siglech",
+    "P2ry12"
+  )
+DotPlot(
+  combine.combined,
+  features = rev(markers.to.plot),
+  assay = "RNA",
+  cols = c("blue", "orange"),
+  dot.scale = 6
+) + RotatedAxis()
+
+```
+
+#Show overall cluster data
+
+```{r, eval = T}
+cluster_cell_number <- (table(Idents(combine.combined)))
+cluster_cell_number
+
+cell_number_by_group<- table(Idents(combine.combined), combine.combined$orig.ident)
+cell_number_by_group
+
+cell_percent <- (prop.table(table(Idents(combine.combined), combine.combined$orig.ident), margin = 2))
+cell_percent
+#Files are combined into the file excel  “Cell numbers” and data is shown in Fig. 4D-H.
+```
+

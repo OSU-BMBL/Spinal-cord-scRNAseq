@@ -1,0 +1,274 @@
+---
+title: "2. Microglia cluster analysis"
+author: "Cankun Wang, Faith Brennan"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(fig.width = 10, fig.height = 8)
+library(Seurat)
+library(ggplot2)
+library(tidyverse)
+library(devtools)
+library(ggpubr)
+library(Hmisc)
+library(ggpubr)
+library(ggrepel)
+library(cowplot)
+library(patchwork)
+library(matrixStats)
+
+load("../data/Seurat output files/Microglia/this_micro_obj.RData.rda")
+this_micro_obj <- this_micro_obj.RData 
+load("../data/Seurat output files/All cells/combined.RData.rda")
+combine.combined <- combined.RData
+Idents(combine.combined) <- combine.combined$seurat_clusters
+
+```
+
+# Microglia cluster analysis (cluster 0 from combine.combined object)
+
+```{r}
+
+this_ct <- 0
+this_micro_obj <- subset(combine.combined, idents = this_ct)
+DefaultAssay(this_micro_obj) <- "RNA"
+this_micro_obj <- NormalizeData(this_micro_obj)
+this_micro_obj <- FindVariableFeatures(this_micro_obj)
+this_micro_obj <- ScaleData(this_micro_obj)
+this_micro_obj <- RunPCA(this_micro_obj, verbose = FALSE)
+this_micro_obj <- FindNeighbors(this_micro_obj, dims = 1:50)
+this_micro_obj <- FindClusters(this_micro_obj, resolution = 0.8)
+this_micro_obj <- RunUMAP(this_micro_obj, reduction = "pca", dims = 1:50)
+Idents(this_micro_obj) <- this_micro_obj$seurat_clusters
+Save(this_micro_obj, "this_micro_obj.RData")
+
+```
+
+# Check top DEGs in each cluster to assist with cluster description
+
+```{r}
+
+clusterzero.de.markers <- FindMarkers(this_micro_obj, ident.1 = "0", ident.2 = NULL, only.pos = TRUE)
+clusterone.de.markers <- FindMarkers(this_micro_obj, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
+clustertwo.de.markers <- FindMarkers(this_micro_obj, ident.1 = "2", ident.2 = NULL, only.pos = TRUE)
+clusterthree.de.markers <- FindMarkers(this_micro_obj, ident.1 = "3", ident.2 = NULL, only.pos = TRUE)
+clusterfour.de.markers <- FindMarkers(this_micro_obj, ident.1 = "4", ident.2 = NULL, only.pos = TRUE)
+clusterfive.de.markers <- FindMarkers(this_micro_obj, ident.1 = "5", ident.2 = NULL, only.pos = TRUE)
+clustersix.de.markers <- FindMarkers(this_micro_obj, ident.1 = "6", ident.2 = NULL, only.pos = TRUE)
+clusterseven.de.markers <- FindMarkers(this_micro_obj, ident.1 = "7", ident.2 = NULL, only.pos = TRUE)
+clustereight.de.markers <- FindMarkers(this_micro_obj, ident.1 = "8", ident.2 = NULL, only.pos = TRUE)
+clusternine.de.markers <- FindMarkers(this_micro_obj, ident.1 = "9", ident.2 = NULL, only.pos = TRUE)
+clusterten.de.markers <- FindMarkers(this_micro_obj, ident.1 = "10", ident.2 = NULL, only.pos = TRUE)
+
+#Use “head(clusterID.de.markers, n=50)” to preview de.markers for each microglia cluster. 
+#Export full de.marker list for each cluster
+write.csv(clusterzero.de.markers, "0.de.markers")
+write.csv(clusterone.de.markers, "1.de.markers")
+write.csv(clustertwo.de.markers, "2.de.markers")
+write.csv(clusterthree.de.markers, "3.de.markers")
+write.csv(clusterfour.de.markers, "4.de.markers")
+write.csv(clusterfive.de.markers, "5.de.markers")
+write.csv(clustersix.de.markers, "6.de.markers")
+write.csv(clusterseven.de.markers, "7.de.markers")
+write.csv(clustereight.de.markers, "8.de.markers")
+write.csv(clusternine.de.markers, "9.de.markers")
+write.csv(clusterten.de.markers, "10.de.markers")
+
+#.csv files are combined into the excel file “Microglia clusters”
+
+subcluster.averages <- AverageExpression(this_micro_obj, assays = "RNA", "subcluster.averages")
+write.csv(subcluster.averages, "Microglia subcluster gene avgs")
+
+#Data is in the far right tab of the excel file “Microglia clusters” 
+
+```
+
+# Rename clusters
+
+```{r, eval = T}
+Idents(this_micro_obj) <- this_micro_obj$seurat_clusters
+this_micro_obj <- RenameIdents(this_micro_obj, `4` = "Homeostatic 1") 
+this_micro_obj <- RenameIdents(this_micro_obj, `8` = "Homeostatic 2")
+this_micro_obj <- RenameIdents(this_micro_obj, `1` = "Proliferating")
+this_micro_obj <- RenameIdents(this_micro_obj, `5` = "Non-lipid phagocytosing")
+this_micro_obj <- RenameIdents(this_micro_obj, `0` = "Lipid processing 1")
+this_micro_obj <- RenameIdents(this_micro_obj, `2` = "Patrolling")
+this_micro_obj <- RenameIdents(this_micro_obj, `6` = "Lipid processing 2")
+this_micro_obj <- RenameIdents(this_micro_obj, `9` = "Antigen processing")
+this_micro_obj <- RenameIdents(this_micro_obj, `3` = "Iron processing")
+this_micro_obj <- RenameIdents(this_micro_obj, `7` = "Interferon production")
+this_micro_obj <- RenameIdents(this_micro_obj, `10` = "Antigen binding")
+
+```
+
+
+# Plot all cells
+
+```{r, eval = T}
+DimPlot(this_micro_obj, label = TRUE, pt.size = 1)
+DimPlot(this_micro_obj, reduction = "umap", split.by = "orig.ident", ncol = 2, pt.size = 0.7)
+
+```
+
+# Create a FeaturePlot showing de.markers (Sup. Fig. 8)
+
+```{r, eval = T}
+FeaturePlot(this_micro_obj, features = c("P2ry12", "Cx3cr1", "Fau", "Lgals1", "Clec7a", "Cst3", "Ctsd", "Lyz2", "Fth1", "Ifit3", "H2-Ab1"), min.cutoff = "q9")
+```
+
+# Create a DotPlot showing two of the de.markers for each cluster 
+
+```{r, eval = T, fig.width=10, fig.height=5}
+markers.to.plot <-
+  c(
+    "H2-Aa",
+    "H2-Ab1",
+    "Ifit1",
+    "Ifit3",
+    "Ftl1",
+    "Fth1",
+    "Cd93",
+    "Lyz2",
+    "Ctsz",
+    "Ctsd",
+    "Selplg",
+    "Cst3",
+    "Lpl",
+    "Clec7a",
+    "Pf4",
+    "Lgals1",
+    "Uba52",
+    "Fau",
+    "Csf1r",
+    "Cx3cr1",
+    "Ier5",
+    "P2ry12"
+  )
+
+DotPlot(
+  this_micro_obj,
+  features = rev(markers.to.plot),
+  assay = "RNA",
+  cols = c("blue", "orange"),
+  dot.scale = 6
+) + RotatedAxis()
+
+```
+
+# Show microglia cluster data
+
+```{r, eval = T}
+
+microglia_cluster_cell_number <- (table(Idents(this_micro_obj)))
+#write.csv(microglia_cluster_cell_number, "Microglia cluster cell number")
+microglia_cluster_cell_number
+
+Microglia_cell_number_by_group<- table(Idents(this_micro_obj), this_micro_obj$orig.ident)
+#write.csv(Microglia_cell_number_by_group, "Microglia cell number_by group")
+Microglia_cell_number_by_group
+
+microglia_cell_percent <- (prop.table(table(Idents(this_micro_obj), this_micro_obj$orig.ident), margin = 2))
+#write.csv(microglia_cell_percent, "Microglia cell percentages")
+microglia_cell_percent
+
+#Files are combined into the file excel  “Microglia cell numbers” and data is shown in Fig. 5A-F
+```
+
+# Violin plots for Fig. 5G-M
+
+```{r, eval = T}
+VlnPlot(
+  combine.combined,
+  features = c("P2ry12", "Fau", "Lgals1", "Clec7a", "Cst3", "Ctsd", "Fth1"),
+  idents = "0",
+  group.by  = "orig.ident",
+  pt.size = 1,
+  assay = "RNA"
+)
+
+```
+
+# Statistical analysis for Fig. 5G-M
+
+```{r}
+microglia_7dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "0"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "0"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(microglia_7dvs0d, "microglia 7d vs 0d")
+
+```
+
+# Volcano plots for Fig. 5N, O
+
+```{r}
+microglia_7dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "0"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "0"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(microglia_7dvs0d, "microglia 7d vs 0d")
+microglia_28dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "0"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "0"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(microglia_28dvs0d, "microglia 28d vs 0d")
+
+```
+

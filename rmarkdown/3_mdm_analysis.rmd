@@ -1,0 +1,317 @@
+---
+title: "3. MDM cluster analysis"
+author: "Cankun Wang, Faith Brennan"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(fig.width = 10, fig.height = 8)
+library(Seurat)
+library(ggplot2)
+library(tidyverse)
+library(devtools)
+library(ggpubr)
+library(Hmisc)
+library(ggpubr)
+library(ggrepel)
+library(cowplot)
+library(patchwork)
+library(matrixStats)
+
+load("../data/Seurat output files/MDMs/this_macroph_obj.RData.rda")
+this_macroph_obj <- this_macroph_obj.RData 
+load("../data/Seurat output files/All cells/combined.RData.rda")
+combine.combined <- combined.RData
+Idents(combine.combined) <- combine.combined$seurat_clusters
+
+```
+
+
+
+```{r}
+this_ct <- 1
+this_macroph_obj <- subset(combine.combined, idents = this_ct)
+DefaultAssay(this_macroph_obj) <- "RNA"
+this_macroph_obj <- NormalizeData(this_macroph_obj)
+this_macroph_obj <- FindVariableFeatures(this_macroph_obj)
+this_macroph_obj <- ScaleData(this_macroph_obj)
+this_macroph_obj <- RunPCA(this_macroph_obj, verbose = FALSE)
+this_macroph_obj <- FindNeighbors(this_macroph_obj, dims = 1:40)
+this_macroph_obj <- FindClusters(this_macroph_obj, resolution = 0.7)
+this_macroph_obj <- RunUMAP(this_macroph_obj, reduction = "pca", dims = 1:40)
+Save(combine.combined, "combined.RData")
+Save(this_macroph_obj, "this_macroph_obj.RData")
+Idents(this_macroph_obj) <- this_macroph_obj$seurat_clusters
+
+```
+
+
+# Rename clusters
+
+```{r, eval = T}
+
+Idents(this_macroph_obj) <- this_macroph_obj$seurat_clusters
+this_macroph_obj <- RenameIdents(this_macroph_obj, `9` = "Patrolling") 
+this_macroph_obj <- RenameIdents(this_macroph_obj, `0` = "Cholesterol processing")
+this_macroph_obj <- RenameIdents(this_macroph_obj, `4` = "Antigen binding")
+this_macroph_obj <- RenameIdents(this_macroph_obj, `6` = "Lipid processing")
+this_macroph_obj <- RenameIdents(this_macroph_obj, `3` = "Cathepsin inhibition")
+this_macroph_obj <- RenameIdents(this_macroph_obj, `2` = "Matrix remodeling")
+this_macroph_obj <- RenameIdents(this_macroph_obj, `8` = "Interferon production")
+this_macroph_obj <- RenameIdents(this_macroph_obj, `5` = "Border recruited")
+this_macroph_obj <- RenameIdents(this_macroph_obj, `1` = "Lipid binding")
+this_macroph_obj <- RenameIdents(this_macroph_obj, `7` = "Calcium binding")
+
+```
+
+# Plot all cells
+
+```{r, eval = T}
+DimPlot(this_macroph_obj, label = TRUE, pt.size = 1)
+DimPlot(this_macroph_obj, reduction = "umap", split.by = "orig.ident", ncol = 2, pt.size = 0.7)
+```
+
+# Check top DEGs in each cluster to assist with MDM cluster description
+
+```{r}
+clusterzero.de.markers <- FindMarkers(this_macroph_obj, ident.1 = "0", ident.2 = NULL, only.pos = TRUE)
+clusterone.de.markers <- FindMarkers(this_macroph_obj, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
+clustertwo.de.markers <- FindMarkers(this_macroph_obj, ident.1 = "2", ident.2 = NULL, only.pos = TRUE)
+clusterthree.de.markers <- FindMarkers(this_macroph_obj, ident.1 = "3", ident.2 = NULL, only.pos = TRUE)
+clusterfour.de.markers <- FindMarkers(this_macroph_obj, ident.1 = "4", ident.2 = NULL, only.pos = TRUE)
+clusterfive.de.markers <- FindMarkers(this_macroph_obj, ident.1 = "5", ident.2 = NULL, only.pos = TRUE)
+clustersix.de.markers <- FindMarkers(this_macroph_obj, ident.1 = "6", ident.2 = NULL, only.pos = TRUE)
+clusterseven.de.markers <- FindMarkers(this_macroph_obj, ident.1 = "7", ident.2 = NULL, only.pos = TRUE)
+clustereight.de.markers <- FindMarkers(this_macroph_obj, ident.1 = "8", ident.2 = NULL, only.pos = TRUE)
+clusternine.de.markers <- FindMarkers(this_macroph_obj, ident.1 = "9", ident.2 = NULL, only.pos = TRUE)
+
+#Use “head(clusterID.de.markers, n=50)” to preview de.markers for each MDM cluster. 
+
+#Export full de.marker list for each cluster
+write.csv(clusterzero.de.markers, "0.de.markers")
+write.csv(clusterone.de.markers, "1.de.markers")
+write.csv(clustertwo.de.markers, "2.de.markers")
+write.csv(clusterthree.de.markers, "3.de.markers")
+write.csv(clusterfour.de.markers, "4.de.markers")
+write.csv(clusterfive.de.markers, "5.de.markers")
+write.csv(clustersix.de.markers, "6.de.markers")
+write.csv(clusterseven.de.markers, "7.de.markers")
+write.csv(clustereight.de.markers, "8.de.markers")
+write.csv(clusternine.de.markers, "9.de.markers")
+
+#.csv files are combined into the excel file “MDM clusters”
+
+subcluster.averages <- AverageExpression(this_macroph_obj, assays = "RNA", "subcluster.averages")
+write.csv(subcluster.averages, "MDM subcluster gene avgs")
+
+#Data is in the far right tab of the excel file “MDM clusters” 
+```
+
+# Create a FeaturePlot showing de.markers (Sup. Fig. 9)
+
+```{r, eval = T}
+FeaturePlot(
+  this_macroph_obj,
+  features = c(
+    "Siglech",
+    "Lpl",
+    "Fcrls",
+    "Ctsd",
+    "Cst3",
+    "Mmp12",
+    "Ifit3",
+    "Ms4a7",
+    "Gpnmb",
+    "S100a4"
+  ),
+  min.cutoff = "q9"
+)
+
+```
+
+# Create a DotPlot showing two of the de.markers for each cluster
+
+```{r, eval = T, fig.width=10, fig.height=5}
+markers.to.plot <-
+  c(
+    "S100a6",
+    "S100a4",
+    "Fabp5",
+    "Gpnmb",
+    "Ms4a6c",
+    "Ms4a7",
+    "Ifit2",
+    "Ifit3",
+    "Ctnnb1",
+    "Mmp12",
+    "Cst7",
+    "Cst3",
+    "Apoe",
+    "Ctsd",
+    "Stab1",
+    "Fcrls",
+    "Ch25h",
+    "Lpl",
+    "Gpr56",
+    "Siglech"
+  )
+
+DotPlot(
+  this_macroph_obj,
+  features = rev(markers.to.plot),
+  assay = "RNA",
+  cols = c("blue", "orange"),
+  dot.scale = 6
+) + RotatedAxis()
+```
+
+# Show MDM cluster data
+
+```{r, eval = T}
+MDM_cluster_cell_number <- (table(Idents(this_macroph_obj)))
+#write.csv(MDM_cluster_cell_number, "MDM cluster cell number")
+MDM_cluster_cell_number
+
+MDM_cell_number_by_group<- table(Idents(this_macroph_obj), this_macroph_obj$orig.ident)
+#write.csv(MDM_cell_number_by_group, "MDM_cluster no._by group")
+MDM_cell_number_by_group
+
+MDM_cell_percent <- (prop.table(table(Idents(this_macroph_obj), this_macroph_obj$orig.ident), margin = 2))
+#write.csv(MDM_cell_percent, "MDM cell percentages")
+MDM_cell_percent
+
+# Files are combined into the file excel  “MDM cell numbers” and data is shown in Fig. 6D, E
+
+```
+
+# Violin plots for Fig. 6F-K
+
+```{r, eval = T}
+VlnPlot(
+  combine.combined,
+  features = c("Siglech", "Lpl", "Fcrls", "Ctsd", "Cst3", "Gpnmb"),
+  idents = "1",
+  group.by  = "orig.ident",
+  pt.size = 1,
+  assay = "RNA"
+)
+```
+
+# Statistical analysis for Fig. 6F-K
+
+```{r}
+
+FindMarkers(
+  this_macroph_obj,
+  ident.1 = "Group 1",
+  ident.2 = "Group 2",
+  group.by = "orig.ident",
+  features = c("gene name"),
+  logfc.threshold = 0.001,
+  test.use = "wilcox"
+)
+
+```
+
+
+# Analysis for Volcano plots and heatmaps in Fig. 6L-O, R, S
+
+```{r}
+
+mdm_7dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "1"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "1"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(mdm_7dvs0d, "mdm 7d vs 0d")
+
+mdm_28dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "1"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "1"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(mdm_28dvs0d, "mdm 28d vs 0d")
+
+mdm_7dplxvs7dveh <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d PLX5622", ]),
+      idents = "1"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "1"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(mdm_7dplxvs7dveh, "mdm 7dplx vs 7dveh")
+
+mdm_28dplxvs28dveh <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d PLX5622", ]),
+      idents = "1"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "1"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(mdm_28dplxvs28dveh, "mdm 28dplx vs 28dveh")
+
+```

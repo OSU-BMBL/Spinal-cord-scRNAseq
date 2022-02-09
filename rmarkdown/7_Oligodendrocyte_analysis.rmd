@@ -1,0 +1,271 @@
+---
+title: "7. Oligodendrocyte cluster analysis"
+author: "Cankun Wang, Faith Brennan"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(fig.width = 10, fig.height = 8)
+library(Seurat)
+library(ggplot2)
+library(tidyverse)
+library(devtools)
+library(ggpubr)
+library(Hmisc)
+library(ggpubr)
+library(ggrepel)
+library(cowplot)
+library(patchwork)
+library(matrixStats)
+
+load("../data/Seurat output files/Oligo lineage/this_oligo.RData.rda")
+this_oligo_obj <- this_oligo.RData 
+load("../data/Seurat output files/All cells/combined.RData.rda")
+combine.combined <- combined.RData
+Idents(combine.combined) <- combine.combined$seurat_clusters
+```
+
+
+
+```{r}
+# Oligodendrocyte lineage cluster analysis (cluster 11 from combine.combined object)
+this_ct <- 11
+this_oligo_obj <- subset(combine.combined, idents = this_ct)
+DefaultAssay(this_oligo_obj) <- "RNA"
+this_oligo_obj <- NormalizeData(this_oligo_obj)
+this_oligo_obj <- FindVariableFeatures(this_oligo_obj)
+this_oligo_obj <- ScaleData(this_oligo_obj)
+this_oligo_obj <- RunPCA(this_oligo_obj, verbose = FALSE)
+this_oligo_obj <- FindNeighbors(this_oligo_obj, dims = 1:10)
+this_oligo_obj <- FindClusters(this_oligo_obj, resolution = 0.1)
+this_oligo_obj <- RunUMAP(this_oligo_obj, reduction = "pca", dims = 1:10)
+Idents(this_oligo_obj) <- this_oligo_obj$seurat_clusters
+Save(combine.combined, "combined.RData")
+Save(this_oligo_obj, "this_oligo.RData")
+DimPlot(this_oligo_obj, label = TRUE)
+DimPlot(this_oligo_obj, reduction = "umap", split.by = "orig.ident", ncol = 2)
+
+```
+
+# Check top DEGs in each cluster to assist with cluster description 
+
+```{r}
+
+clusterzero.de.markers <- FindMarkers(this_oligo_obj, ident.1 = "0", ident.2 = NULL, only.pos = TRUE)
+clusterone.de.markers <- FindMarkers(this_oligo_obj, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
+#Use “head(clusterID.de.markers, n=50)” to preview de.markers for each ependymal cluster. 
+#Export full de.marker list for each cluster
+
+write.csv(clusterzero.de.markers, "0.de.markers")
+write.csv(clusterone.de.markers, "1.de.markers")
+
+#.csv files are combined into the excel file “Oligodendrocyte lineage clusters”
+
+subcluster.averages <- AverageExpression(this_oligo_obj, assays = "RNA", "subcluster.averages")
+write.csv(subcluster.averages, "Oligodendrocyte subcluster avgs")
+
+#Data is in the far right tab of the excel file “Oligodendrocyte lineage clusters” 
+
+```
+
+# Rename clusters
+
+```{r, eval=T}
+Idents(this_oligo_obj) <- this_oligo_obj$seurat_clusters
+this_oligo_obj <- RenameIdents(this_oligo_obj, `0` = "Oligodendrocytes") 
+this_oligo_obj <- RenameIdents(this_oligo_obj, `1` = "Oligodendrocyte precursor cells")
+
+```
+
+# Plot all cells
+
+```{r, eval = T}
+
+DimPlot(this_oligo_obj, label = TRUE)
+DimPlot(this_oligo_obj, reduction = "umap", split.by = "orig.ident", ncol = 2)
+
+
+```
+
+
+# Create a DotPlot showing ten of the de.markers for each cluster, showin in Sup. Fig. 13C
+
+```{r, eval = T, fig.height=4, fig.width=8}
+markers.to.plot <- c("Cdca8", "Sgol2", "Tpx2", "Nusap1", "Ckap2", "Cenpf", "Cks2", "Kif11", "Ect2", "Ube2c", "Olig1", "Gpr37l1", "Malat1", "Cntn1", "Rtn1", "Gpm6b", "Gng3", "Epn2", "Syt11", "Atp1a2")
+
+DotPlot(this_oligo_obj, features = rev(markers.to.plot), assay = "RNA", cols = c("blue", "orange"), dot.scale = 6) + RotatedAxis()
+
+```
+
+# Show Oligodendrocyte lineage cell cluster data
+
+```{r, eval = T}
+Oligo_cluster_cell_number <- (table(Idents(this_oligo_obj)))
+#write.csv(Oligo_cluster_cell_number, "Oligo cluster cell number")
+Oligo_cluster_cell_number
+
+Oligo_cell_number_by_group<- table(Idents(this_oligo_obj), this_oligo_obj$orig.ident)
+#write.csv(Oligo_cell_number_by_group, "Oligo_cluster no._by group")
+Oligo_cell_number_by_group
+
+Oligo_cell_percent <- (prop.table(table(Idents(this_oligo_obj), this_oligo_obj$orig.ident), margin = 2))
+#write.csv(Oligo_cell_percent, "Oligo cell percentages")
+Oligo_cell_percent
+#Files are combined into the file excel  “Oligo cell numbers” and data is shown in Sup. Fig. 13D
+```
+
+# Violin plots for Sup. Fig. 13F, G
+
+```{r, eval = T}
+VlnPlot(combine.combined, features = c("Tmsb4x", "Ntm"), idents = "11", group.by = "orig.ident", pt.size = 1, assay = "RNA")
+```
+
+# Statistical analysis for Sup. Fig. 13F, G
+
+```{r}
+FindMarkers(this_epen_obj, ident.1 = "Group 1", ident.2 = "Group 2, group.by = "orig.ident", features = c("gene name"), logfc.threshold = 0.001, test.use = "wilcox")
+
+```
+
+# Analysis for heatmap in Sup. Fig. 13E
+
+```{r}
+
+Oligo_7dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "11"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "11"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Oligo_7dvs0d, "Oligodendrocytes 7d vs 0d")
+
+Oligo_28dvs0d <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "11"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "00 d Control", ]),
+      idents = "11"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Oligo_28dvs0d, "Oligodendrocytes 28d vs 0d")
+
+Oligo_7dplxvs7dveh <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d PLX5622", ]),
+      idents = "11"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "07 d Control", ]),
+      idents = "11"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Oligo_7dplxvs7dveh, "Oligodendrocytes 7dplx vs 7dveh")
+
+Oligo_28dplxvs28dveh <-
+  FindMarkers(
+    object = combine.combined,
+    ident.1 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d PLX5622", ]),
+      idents = "11"
+    ),
+    ident.2 = WhichCells(
+      combine.combined,
+      cells = rownames(combine.combined@meta.data[combine.combined@meta.data$orig.ident ==
+                                                    "28 d Control", ]),
+      idents = "11"
+    ),
+    min.pct = 0.1,
+    logfc.threshold = 0.176,
+    assay = "RNA",
+    only.pos = FALSE
+  )
+write.csv(Oligo_28dplxvs28dveh, "Oligodendrocytes 28dplx vs 28dveh")
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
+
+
+```{r, eval = T}
+
+```
