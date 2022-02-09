@@ -365,7 +365,7 @@ for (i in 1:length(mat.list)) {
 }
 ```
 
-# Chord diagram for Macrophage, Astrocyte, and Microglia in PLX samples
+# Chord diagram for Macrophage, Astrocyte in PLX samples
 
 ```{r, eval = F, message=F, warning=F, results=F}
 {
