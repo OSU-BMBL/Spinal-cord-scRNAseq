@@ -20,6 +20,7 @@ NOTE: You may find a `data` folder shown in the code. This folder contains proce
   7. [7_Oligodendrocyte_analysis](http://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/7_Oligodendrocyte_analysis.html): Oligodendrocyte lineage cluster analysis (For Sup. Fig. 13)
   8. [8_Neutrophil_analysis](http://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/8_Neutrophil_analysis.html): Neutrophil cluster analysis (For Sup. Fig. 14)
   9. [9_Monocyte_analysis](http://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/9_Monocyte_analysis.html): Monocyte cluster analysis (For Sup. Fig. 15)
+  10. [10_cellchat](http://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/10_cellchat.html): CellChat analysis
 
 ## Code authors
 

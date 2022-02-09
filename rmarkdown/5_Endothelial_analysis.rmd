@@ -78,7 +78,7 @@ write.csv(subcluster.averages, "Endothelial subcluster gene avgs")
 
 # Rename clusters
 
-```{r}
+```{r, eval=T}
 Idents(this_endo_obj) <- this_endo_obj$seurat_clusters
 this_endo_obj <- RenameIdents(this_endo_obj, `0` = "Homeostatic") 
 this_endo_obj <- RenameIdents(this_endo_obj, `1` = "Differentiating")
@@ -233,6 +233,1003 @@ write.csv(Endo_28dplxvs28dveh, "Endothelial 28dplx vs 28dveh")
 
 ```
 
+
+# Introduction of bootstrap
+
+We use the "boot" R package to perform bootstrap analysis. The R package boot allows a user to easily generate bootstrap samples (10000) of virtually any statistic that they can calculate in R. We perform bootstrap analysis for the mixture of cell types from six samples.
+
+Four outputs will be generated including:
+
+* Variance of bootstrap resamples (needed by bootstrap using bca bootstrap method). Smaller variance indicates better consistency among the resamples.
+
+* 95% Confidence Intervals (CIs) used to test the statistical confidence of the bootstrap results. 95% probability can be ensured that the estimated statistic falls within the CI. CIs are calculated by normal approximation (norm), basic bootstrap (basic), bootstrap percentile (perc, and bootstrap percentile (bca).
+
+* Histogram including a dotted vertical line, which indicates the location of the original statistic.
+
+* Quantile-quantile (q-q) plot, a graphical technique for determining if two data sets come from populations with a common distribution. The x-axis represents the standard normal distribution, while the y-axis denotes the distribution of the resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# Load data for bootstrapping
+
+boot.table <- data.frame(id = names(Idents(this_endo_obj)), cluster = Idents(this_endo_obj), 
+                         sample = this_endo_obj$orig.ident)
+rownames(boot.table) <- NULL
+
+```
+
+# Cell subtype percentages of Control 00d
+
+## Bootstrap of the percentage of Homeostatic cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Homeostatic" & d2$sample == "00 d Control", ]) / 
+	         nrow(d2[d2$sample == "00 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Differentiating cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Differentiating" & d2$sample == "00 d Control", ]) / 
+	         nrow(d2[d2$sample == "00 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Perivascular macrophages cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Perivascular macrophages" & d2$sample == "00 d Control", ]) / 
+	         nrow(d2[d2$sample == "00 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Neovascularizing cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Neovascularizing" & d2$sample == "00 d Control", ]) / 
+	         nrow(d2[d2$sample == "00 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+# Cell subtype percentages of Control 07d
+
+## Bootstrap of the percentage of Homeostatic cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Homeostatic" & d2$sample == "07 d Control", ]) / 
+	         nrow(d2[d2$sample == "07 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Differentiating cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Differentiating" & d2$sample == "07 d Control", ]) / 
+	         nrow(d2[d2$sample == "07 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Perivascular macrophages cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Perivascular macrophages" & d2$sample == "07 d Control", ]) / 
+	         nrow(d2[d2$sample == "07 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Neovascularizing cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Neovascularizing" & d2$sample == "07 d Control", ]) / 
+	         nrow(d2[d2$sample == "07 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+# Cell subtype percentages of Control 28d
+
+## Bootstrap of the percentage of Homeostatic cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Homeostatic" & d2$sample == "28 d Control", ]) / 
+	         nrow(d2[d2$sample == "28 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Differentiating cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Differentiating" & d2$sample == "28 d Control", ]) / 
+	         nrow(d2[d2$sample == "28 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Perivascular macrophages cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Perivascular macrophages" & d2$sample == "28 d Control", ]) / 
+	         nrow(d2[d2$sample == "28 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Neovascularizing cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Neovascularizing" & d2$sample == "28 d Control", ]) / 
+	         nrow(d2[d2$sample == "28 d Control", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+# Cell subtype percentages of PLX5622 00d
+
+## Bootstrap of the percentage of Homeostatic cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Homeostatic" & d2$sample == "00 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "00 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Differentiating cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Differentiating" & d2$sample == "00 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "00 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Perivascular macrophages cells
+
+There is no Perivascular macrophages cells in this treatment condition.
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Perivascular macrophages" & d2$sample == "00 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "00 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+
+# The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+# 
+# The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Neovascularizing cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Neovascularizing" & d2$sample == "00 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "00 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+# Cell subtype percentages of PLX5622 07d
+
+## Bootstrap of the percentage of Homeostatic cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Homeostatic" & d2$sample == "07 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "07 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Differentiating cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Differentiating" & d2$sample == "07 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "07 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Perivascular macrophages cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Perivascular macrophages" & d2$sample == "07 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "07 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Neovascularizing cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Neovascularizing" & d2$sample == "07 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "07 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+# Cell subtype percentages of PLX5622 28d
+
+## Bootstrap of the percentage of Homeostatic cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Homeostatic" & d2$sample == "28 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "28 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Differentiating cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Differentiating" & d2$sample == "28 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "28 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Perivascular macrophages cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Perivascular macrophages" & d2$sample == "28 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "28 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
+
+## Bootstrap of the percentage of Neovascularizing cells
+
+Summary of the bootstrap resamples:
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+# library(boot)
+
+# "Homeostatic", "Differentiating", "Perivascular macrophages", "Neovascularizing"
+
+fc <- function(d, i){
+	d2 <- d[i,]
+	return(nrow(d2[d2$cluster == "Neovascularizing" & d2$sample == "28 d PLX5622", ]) / 
+	         nrow(d2[d2$sample == "28 d PLX5622", ]))
+}
+
+set.seed(626)
+bootcorr <- boot(boot.table, fc, R = 10000)
+
+summary(bootcorr)
+
+```
+
+```{r,echo=F,eval=F,message=FALSE,warning=F}
+
+var(bootcorr$t)
+
+```
+
+The variance of the percentage of homeostatic cells in the bootstrap resamples is `r var(bootcorr$t)`.
+
+The confidence interval of the percentage of homeostatic cells in the bootstrap resamples.
+
+```{r,echo=F,eval=T,message=FALSE,warning=F}
+
+plot(bootcorr)
+boot.ci(boot.out = bootcorr, type = c("norm", "basic", "perc", "bca"))
+
+```
 
 ```{r, eval = T}
 
