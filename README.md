@@ -4,8 +4,6 @@ This repository contains supplementary code for the analyses presented in the ma
 
 If you have any questions or feedback regarding the code, please contact Cankun Wang via <cankun.wang@osumc.edu>.
 
-NOTE: GitHub does not support
-
 ## Directory structure
 
 NOTE: You may find a `data` folder shown in the code. This folder contains processed R object and results. The repository does not provide `data/` folder since it is too large (1GB). Please download and unzip it to the repository home folder (download link unavailable due to paper revision).
