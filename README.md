@@ -6,7 +6,7 @@ If you have any questions or feedback regarding the code, please contact Cankun 
 
 ## Directory structure
 
-- `rmarkdown/`: analysis code and the generated reports
+`rmarkdown/`: analysis code and the generated reports
   1. [1_load_and_integration](https://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/1_load_and_integration.html): Data load and library integration (For Fig. 5 and Sup. Fig. 8)
   2. [2_microglia_analysis](http://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/2_microglia_analysis.html): Microglia cluster analysis (For Fig. 5 and Sup. Fig. 8)
   3. [3_mdm_analysis](http://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/3_mdm_analysis.html): MDM cluster analysis (For Fig. 6 and Sup. Fig. 9 and 10)
