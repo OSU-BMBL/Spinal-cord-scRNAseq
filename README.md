@@ -6,8 +6,6 @@ If you have any questions or feedback regarding the code, please contact Cankun 
 
 ## Directory structure
 
-NOTE: You may find a `data` folder shown in the code. This folder contains processed R object and results. The repository does not provide `data/` folder since it is too large (1GB). Please download and unzip it to the repository home folder (download link unavailable due to paper revision).
-
 - `rmarkdown/`: analysis code and the generated reports
   1. [1_load_and_integration](https://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/1_load_and_integration.html): Data load and library integration (For Fig. 5 and Sup. Fig. 8)
   2. [2_microglia_analysis](http://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/2_microglia_analysis.html): Microglia cluster analysis (For Fig. 5 and Sup. Fig. 8)
@@ -20,6 +18,9 @@ NOTE: You may find a `data` folder shown in the code. This folder contains proce
   9. [9_Monocyte_analysis](http://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/9_Monocyte_analysis.html): Monocyte cluster analysis (For Sup. Fig. 15)
   10. [10_cellchat](http://htmlpreview.github.io/?https://github.com/OSU-BMBL/Spinal-cord-scRNAseq/blob/master/rmarkdown/10_cellchat.html): CellChat analysis
 
+NOTE: 
+- You may find a `data` folder shown in the code. This folder contains processed R object and results. The repository does not provide `data/` folder since it is too large (1GB). Please download and unzip it to the repository home folder (download link unavailable due to paper revision).
+- The volcano plots were generated using [graphpad](https://www.graphpad.com/)
 ## Code authors
 
 - Faith Brennan
