@@ -11,7 +11,7 @@
 
 <meta name="author" content="Cankun Wang, Faith Brennan" />
 
-<meta name="date" content="2022-02-04" />
+<meta name="date" content="2022-02-18" />
 
 <title>1. Data Load and library integration</title>
 
@@ -2769,15 +2769,14 @@ div.tocify {
 
 <h1 class="title toc-ignore">1. Data Load and library integration</h1>
 <h4 class="author">Cankun Wang, Faith Brennan</h4>
-<h4 class="date">02/04/2022</h4>
+<h4 class="date">02/18/2022</h4>
 
 </div>
 
 
 <div id="load-data-and-create-objects-for-each-dataset" class="section level1">
 <h1><span class="header-section-number">1</span> Load data and create objects for each dataset</h1>
-<p>Using R 3.6.3 and Seurat v3.2.0</p>
-<p>R versions &gt;4 will also provide the same data but some UMAP plots will appear rotated</p>
+<p>Using R 4.1.2 and Seurat v3.2.0. Please note that R versions &gt;4 will produce the same cell clustering and gene expression values as in the paper by Brennan et al., but some UMAP plots will appear rotated compared to those created with R 3.6.3.</p>
 <pre class="r"><code>#Sample load  (n=6 libraries, three time points are sham, 7d and 28d)
 A1.data &lt;- Read10X(data.dir = &quot;../Samples/1&quot;)
 A1 &lt;-

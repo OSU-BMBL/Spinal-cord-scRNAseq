@@ -30,9 +30,7 @@ library(matrixStats)
 
 # Load data and create objects for each dataset
 
-Using R 3.6.3 and Seurat v3.2.0
-
-R versions >4 will also provide the same data but some UMAP plots will appear rotated
+Using R 4.1.2 and Seurat v3.2.0. Please note that R versions >4 will produce the same cell clustering and gene expression values as in the paper by Brennan et al., but some UMAP plots will appear rotated compared to those created with R 3.6.3.
 
 ```{r}
 #Sample load  (n=6 libraries, three time points are sham, 7d and 28d)
