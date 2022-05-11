@@ -27,4 +27,5 @@ NOTE:
 
 - Faith Brennan
 - Yang Li
+- Qi Guo
 - [Cankun Wang](https://github.com/Wang-Cankun)
