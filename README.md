@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/457175435.svg)](https://zenodo.org/badge/latestdoi/457175435)
 
-This repository contains supplementary code for the analyses presented in the manuscript: Microglia coordinate cellular interactions during spinal cord repair.
+This repository contains supplementary code for the analyses presented in the manuscript: Microglia coordinate intracellular interactions during spinal cord repair in mice.
 
 If you have any questions or feedback regarding the code, please contact Cankun Wang via <cankun.wang@osumc.edu>.
 
